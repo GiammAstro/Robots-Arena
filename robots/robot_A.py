@@ -20,14 +20,14 @@ class robot():
         self.shield = 4
         return True
     
-    def move(self, pos, players_in_radius, shots_in_radius):
+    def move(self, __pos, __players_in_radius, __shots_in_radius):
         '''Here you can chose how you want your robot to move in the arena,
             basing on the information that you have consisting in:
             1) position of the robot "pos" as a tuple (x,y)
             2) position of the other robots in the view radius as tuple (x,y) 
-               accessible by "pos" property of "robots_in_radius" list objects
+               accessible by "pos" property of "robots_in_radius" dictionary objects
             3) position of the shots in the view radius as tuple (x,y) 
-               accessible by "pos" property of "shots_in_radius" list objects
+               accessible by "pos" property of "shots_in_radius" dictionary objects
             
             OUTPUT: Basing on the information you have and on the speed that you selected 
             you have to consider how you want to move your robot. You can implement your own logic 
