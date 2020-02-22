@@ -1,7 +1,7 @@
 class robot():
     
     def __init__(self):
-        self.robot_name = 'ROBOT_A'
+        self.robot_name = 'ROBOT_temp'
         self.skills()
 
     def skills(self):
@@ -12,12 +12,11 @@ class robot():
             4) the shield of the robot "self.shield"
             
             REMEMBER: you have a maximum of 16 robot skill points to give to your robot. 
-            A higher total number of skill points is not accepted. Each skill can have a maximum of 10 points
-            so as example a speed of 11 or 16 is not allowed.
+            A higher total number of skill points is not accepted.
         '''
-        self.speed = 8
+        self.speed = 0
         self.power = 4
-        self.view_radius = 0
+        self.view_radius = 8
         self.shield = 4
         return True
     
@@ -36,5 +35,5 @@ class robot():
             the movement direction expressed in the form of the angular direction in the field 
             (clockwise from the vertical up direction) given in degrees. If no direction is given ("direction" = None) the robot will stand still
         '''
-        direction = 10
+        direction = None
         return direction
