@@ -172,7 +172,7 @@ class game:
                         return self.robots_stat[robot_name]['position']        
             return (final_pos_x, final_pos_y)
 
-        #if the robot does not want to move we leave it there               
+        #if the robot does not want to move we leave it there
         else:  
             return self.robots_stat[robot_name]['position']
 
