@@ -37,3 +37,7 @@ class robot():
         '''
         direction = None
         return direction
+    
+    def shoot(self, __pos, __players_in_radius, __shots_in_radius):
+        shot = None
+        return shot

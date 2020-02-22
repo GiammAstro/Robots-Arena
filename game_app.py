@@ -110,6 +110,8 @@ class game:
            This is done by giving them the current status in therms of other robots in the radius of view
            and positions of the shots in the range of view and asking them what is the next move 
            specified by an angular direction.
+           The function also evolves the shots that were fired by the robots that are still alive. 
+           If a robot is dead its shots are removed from the arena.
         '''
         #we cycle on each robot asking the new direction
         for robot_focus in self.robots:
@@ -119,6 +121,8 @@ class game:
                 nearby_robots, nearby_shots = self.nearby_objects(robot_focus.robot_name)
                 #then we ask the direction to the robot (that is free of chosing it on its own)
                 self.robots_stat[robot_focus.robot_name]['direction'] = robot_focus.move(self.robots_stat[robot_focus.robot_name]['position'], nearby_robots, nearby_shots)
+                #we ask to the robot also if he wants to shoot
+                self.robots_stat[robot_focus.robot_name]['shots'].append(robot_focus.shoot(self.robots_stat[robot_focus.robot_name]['position'], nearby_robots, nearby_shots))
         
         #we check for feasibility of the movement and if possible we apply the movement
         for robot_focus in self.robots_stat:
@@ -194,8 +198,9 @@ class game:
                     nearby_robots[robot] = {'pos': self.robots_stat[robot]['position']}
                 #selecting shots in radius of view
                 for shot_focus in self.robots_stat[robot]['shots']:
-                    if self.distance(self.robots_stat[robot_focus]['position'], self.robots_stat[robot]['shots'][shot_focus]['pos']) <= self.robots_stat[robot_focus]['view_radius']:
-                        nearby_shots[robot] = {'pos': self.robots_stat[robot]['shots'][shot_focus]['pos'], 'dir': self.robots_stat[robot]['shots'][shot_focus]['dir'], 'power': self.robots_stat[robot]['shots'][shot_focus]['power']}
+                    if shot_focus != None:
+                        if self.distance(self.robots_stat[robot_focus]['position'], shot_focus['pos']) <= self.robots_stat[robot_focus]['view_radius']:
+                            nearby_shots[robot] = {'pos': shot_focus['pos'], 'dir': shot_focus['dir'], 'power': shot_focus['power']}
         return nearby_robots, nearby_shots
 
     #--------------GRAPHICAL FUNCTIONS-----------------#
