@@ -24,6 +24,7 @@ class game:
         self.robots_stat = {}
         #players that participate to a match
         self.max_player_number = 4
+        self.initial_positions = [(8,8),(92,92),(8,92),(92,8)]
         #dimensions of the arena
         self.arena_x_dim = 100
         self.arena_y_dim = 100
@@ -39,7 +40,8 @@ class game:
         #match length (in seconds)
         self.match_length = 120
         #skills constraints (new one can be added and will be scanned during the robots importing operation)
-        skills_limit = 16 #limit to the sum of all the player skills
+        self.skill_points_total_limit = 16 #limit to the sum of all the player skills
+        self.skill_points_limit = 10 #limit to the points of a single skill
         #skills scaling
         #game physics
         self.time_step = 1
@@ -57,6 +59,17 @@ class game:
                 foo = importlib.util.module_from_spec(spec)
                 spec.loader.exec_module(foo)
                 robot_curr = foo.robot()
+                #checking the robot skill points according to the limits
+                if (robot_curr.speed+robot_curr.power+robot_curr.shield+robot_curr.view_radius) > self.skill_points_total_limit:
+                    raise ValueError('ERROR: robot %s  exceeds max number of total skill points of %s'%(robot_curr.robot_name, self.skill_points_total_limit))
+                if (robot_curr.speed > self.skill_points_limit or robot_curr.speed < 0):
+                    raise ValueError('ERROR: robot %s speed skill points out of range [0,%s]'%(robot_curr.robot_name, self.skill_points_limit))
+                if (robot_curr.power > self.skill_points_limit or robot_curr.speed < 0):
+                    raise ValueError('ERROR: robot %s power skill points out of range [0,%s]'%(robot_curr.robot_name, self.skill_points_limit))
+                if (robot_curr.shield > self.skill_points_limit or robot_curr.speed < 0):
+                    raise ValueError('ERROR: robot %s shield skill points out of range [0,%s]'%(robot_curr.robot_name, self.skill_points_limit))
+                if (robot_curr.view_radius > self.skill_points_limit or robot_curr.speed < 0):
+                    raise ValueError('ERROR: robot %s view_radius skill points out of range [0,%s]'%(robot_curr.robot_name, self.skill_points_limit))
                 print('imported robot %s' %(robot_curr.robot_name))
                 self.robots.append(robot_curr)
             print('Selected players %s' %(' '.join(robot_list)))
@@ -70,15 +83,17 @@ class game:
         #while self.alive_players > 1:
     
     def place_robots(self):
-        '''This function is placing the imported robots in a randomic initial position in the arena.
+        '''This function is placing the imported robots in a specified initial position in the arena.
            This position is stored in a dictionary that will contain the current positions 
            of the robots and all their stats, in this way even if the skills change while the robot is playing 
            (trying to cheat) they will not be updated since they were copied in the initialization phase.
            The health of the robot is also given (the same for each robot) in this moment.
         '''
+        counter = 0
         for robot in self.robots:
-            pos_x = randint(0, self.arena_x_dim)
-            pos_y = randint(0, self.arena_y_dim)
+            pos_x, pos_y = self.initial_positions[counter]
+            #pos_x = randint(0, self.arena_x_dim)
+            #pos_y = randint(0, self.arena_y_dim)
             self.robots_stat[robot.robot_name] = {}
             self.robots_stat[robot.robot_name]['position'] = (pos_x, pos_y)
             self.robots_stat[robot.robot_name]['health'] = 100
@@ -88,6 +103,7 @@ class game:
             self.robots_stat[robot.robot_name]['view_radius'] = robot.view_radius
             self.robots_stat[robot.robot_name]['shots'] = []
             self.robots_stat[robot.robot_name]['marker'] = None
+            counter += 1
     
     def animate_match(self):
         '''This function is moving the robots according to their decisions. 
@@ -132,15 +148,7 @@ class game:
             shift_y = velocity * np.sin(np.radians(self.robots_stat[robot_name]['direction']))
             exp_final_pos_x = self.robots_stat[robot_name]['position'][0] + shift_x
             exp_final_pos_y = self.robots_stat[robot_name]['position'][1] + shift_y
-            #we check if the final position means a collision with other robots
-            for robot in self.robots_stat:
-                #we ignore the focused robot
-                if robot != robot_name and self.robots_stat[robot]['health'] != None:
-                    #we check the distance with the selected robot
-                    distance = self.distance((exp_final_pos_x, exp_final_pos_y), self.robots_stat[robot]['position'])
-                    if distance < self.robots_size:
-                        return self.robots_stat[robot_name]['position']
-            #whe then check if the final position is out of the arena
+            #whe check if the final position is out of the arena
             if exp_final_pos_x > (self.arena_x_dim - self.robots_size) :
                 final_pos_x = self.arena_x_dim - self.robots_size
             elif exp_final_pos_x < self.robots_size:
@@ -153,9 +161,19 @@ class game:
                 final_pos_y = self.robots_size
             else:
                 final_pos_y = exp_final_pos_y
-
+            #we then check if the final position means a collision with other robots
+            for robot in self.robots_stat:
+                #we ignore the focused robot
+                if robot != robot_name and self.robots_stat[robot]['health'] != None:
+                    #we check the distance with the selected robot
+                    distance = self.distance((final_pos_x, final_pos_y), self.robots_stat[robot]['position'])
+                    if distance < self.robots_size*2:
+                        #if moving the robot to the expected positon generates a collision we leave it where it is
+                        return self.robots_stat[robot_name]['position']        
             return (final_pos_x, final_pos_y)
-        else:
+
+        #if the robot does not want to move we leave it there               
+        else:  
             return self.robots_stat[robot_name]['position']
 
             
