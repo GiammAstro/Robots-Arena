@@ -176,8 +176,6 @@ class game:
         else:  
             return self.robots_stat[robot_name]['position']
 
-            
-
     def distance(self, p1, p2):
         a = np.array(p1)
         b = np.array(p2)
