@@ -7,7 +7,7 @@ fps = 60
 match_length = 120
 
 #instantiating the game class
-game = game(fps)
+game = game(fps, match_length)
 
 #----------------MAIN---------------------
 def main():
@@ -31,6 +31,7 @@ def main():
     while time.time() - start_time < match_length + 1:
         #starting evolving the match
         game.animate_match(time.time() - start_time)
+        game.check_hit()
         game.draw_robots()
         game.draw_shots()
         time.sleep(1/fps)
