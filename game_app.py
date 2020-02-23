@@ -15,33 +15,41 @@ import time
 
 class game:
 
-    def __init__(self):
+    def __init__(self, fps):
         #folder where the robots are placed
         self.importing_folder = 'robots'
         #defining the robots list as empty
         self.robots = []
         #defining the dictionary containing the robot statuses
         self.robots_stat = {}
+        #defining the animation step used for counting how many steps we took in the game simulation
+        self.animation_step = 0
         #players that participate to a match
         self.max_player_number = 4
         self.initial_positions = [(8,8),(92,92),(8,92),(92,8)]
+        self.robot_colors = ['blue', 'yellow', 'green', 'magenta']
         #dimensions of the arena
         self.arena_x_dim = 100
         self.arena_y_dim = 100
         self.arena_diagonal = np.sqrt((self.arena_x_dim)**2+(self.arena_y_dim)**2)
+        #frames per second
+        self.fps = fps
+        #shoot frequency (shoots per second, minimum is 1)
+        self.shooting_freq = 0.8
+        self.shooting_time = 0
         #robot speed limit
-        self.speed_limit_scaled = 2.5
-        self.speed_limit = self.arena_diagonal * self.speed_limit_scaled / 100
+        self.speed_limit_scaled = 15 * (60/self.fps) / 1000
+        self.speed_limit = self.arena_diagonal * self.speed_limit_scaled
         #shots speed
-        self.speed_shot_scaled = 4
-        self.speed_shot = self.arena_diagonal * self.speed_shot_scaled / 100
+        self.speed_shot_scaled = self.speed_limit_scaled*2
+        self.speed_shot = self.arena_diagonal * self.speed_shot_scaled
         #size od the robots (in percentage of arena size)
         self.robots_size_scaled = 2.5
-        self.robots_size = self.arena_diagonal * self.robots_size_scaled / 100
+        self.robots_size = self.arena_diagonal * self.robots_size_scaled /100
+        #size of the shots
+        self.shot_size = self.robots_size / 10
         #countdown before start of match
         self.countdown = 3
-        #match length (in seconds)
-        self.match_length = 120
         #skills constraints (new one can be added and will be scanned during the robots importing operation)
         self.skill_points_total_limit = 16 #limit to the sum of all the player skills
         self.skill_points_limit = 10 #limit to the points of a single skill
@@ -98,12 +106,13 @@ class game:
         '''
         counter = 0
         for robot in self.robots:
-            #each robot is assigned to a predefined position defined in self.initial_positions
-            pos_x, pos_y = self.initial_positions[counter]
             #the self.robots_stat dictionary which holds the current status off all the participant robots 
             #is created and filled with the robots skills and positions at this moment
             self.robots_stat[robot.robot_name] = {}
-            self.robots_stat[robot.robot_name]['position'] = (pos_x, pos_y)
+            #each robot is assigned to a predefined position defined in self.initial_positions
+            self.robots_stat[robot.robot_name]['position'] = self.initial_positions[counter]
+            #each robot has also a color
+            self.robots_stat[robot.robot_name]['color'] = self.robot_colors[counter]
             self.robots_stat[robot.robot_name]['health'] = 100
             self.robots_stat[robot.robot_name]['shield'] = robot.shield
             self.robots_stat[robot.robot_name]['speed'] = robot.speed
@@ -115,7 +124,7 @@ class game:
     
     #------------MATCH EVOLUTION FUNCTION------------------------
 
-    def animate_match(self):
+    def animate_match(self, time):
         '''This function is moving the robots according to their decisions. 
            This is done by giving them the current status in therms of other robots in the radius of view
            and positions of the shots in the range of view and asking them what is the next move 
@@ -139,10 +148,17 @@ class game:
                 self.robots_stat[robot_focus.robot_name]['direction'] = robot_focus.move(self.robots_stat[robot_focus.robot_name]['position'], nearby_robots, nearby_shots)
                 
                 #------------SHOTS-----------------#
-                #we ask to the robot also if he wants to shoot
-                shot_dir_focus = robot_focus.shoot(self.robots_stat[robot_focus.robot_name]['position'], nearby_robots, nearby_shots)
-                if shot_dir_focus != None:
-                    self.robots_stat[robot_focus.robot_name]['shots'].append({'position': self.robots_stat[robot_focus.robot_name]['position'], 'dir': shot_dir_focus, 'power': self.robots_stat[robot_focus.robot_name]['power']})
+                #we want to shoot with a specific frequency so we check if it is the correct time to shoot
+                if (time - self.shooting_time) > (1/self.shooting_freq):
+                    self.shooting_time = time
+                    #we ask to the robot if it wants to shoot
+                    shot_dir_focus = robot_focus.shoot(self.robots_stat[robot_focus.robot_name]['position'], nearby_robots, nearby_shots)
+                    if shot_dir_focus != None:
+                        self.robots_stat[robot_focus.robot_name]['shots'].append(
+                            {'position': self.robots_stat[robot_focus.robot_name]['position'], 
+                            'direction': shot_dir_focus, 
+                            'power': self.robots_stat[robot_focus.robot_name]['power'], 
+                            'marker': None})
         
         #-----------APPLYING MOVEMENTS---------#
         #we apply the movement to both robots and shots
@@ -152,10 +168,8 @@ class game:
                 #moving robot
                 self.robots_stat[robot_focus]['position'] = self.move_robot(robot_focus)
                 #moving its shots
-                #self.robots_stat[robot_focus]['shots'] = self.move_shots(robot_focus)
+                self.move_shots(robot_focus)
 
-            
-        
         return True
 
     ##################################################
@@ -171,7 +185,6 @@ class game:
         '''
         #scaling the velocity skill according to arena dimension
         velocity = self.robots_stat[robot_name]['speed'] /10 * self.speed_limit 
-        print(velocity)
 
         #first we check if the robot wants to move (if it does not want will give a direction of None)
         if self.robots_stat[robot_name]['direction'] != None:
@@ -214,6 +227,32 @@ class game:
         #if the robot does not want to move we leave it there
         else:  
             return self.robots_stat[robot_name]['position']
+    
+    def move_shots(self, robot_name):
+        '''This function is in charge of applying the movement to the robot shots, if there are some.
+        The shots are moved all with the same velocity defined in "self.speed_shot" expressed as a quantity 
+        scaled to the robot maximum allowed velocity. 
+        Shots have to be faster than robots otherwise the probability of getting hitted are lower 
+        and the match lasts too long.
+        '''
+
+        #first we check if the robot has shots to move
+        if len(self.robots_stat[robot_name]['shots']) > 0:
+            #we loop over the robot shots
+            for shot_focus in self.robots_stat[robot_name]['shots']:
+                #whe check if the shot went out of the arena (if yes we delete it)
+                if shot_focus['position'][0] > self.arena_x_dim or shot_focus['position'][0] < 0 or shot_focus['position'][1] > self.arena_y_dim or shot_focus['position'][1] < 0:
+                    self.robots_stat[robot_name]['shots'].remove(shot_focus)
+                else:   
+                    #we compute the expected final position for the focused shot
+                    shift_x = self.speed_shot * np.cos(np.radians(shot_focus['direction']))
+                    shift_y = self.speed_shot * np.sin(np.radians(shot_focus['direction']))
+                    exp_final_pos_x = shot_focus['position'][0] + shift_x
+                    exp_final_pos_y = shot_focus['position'][1] + shift_y
+                    #we set the final position
+                    shot_focus['position'] = (exp_final_pos_x, exp_final_pos_y)
+            
+        return True
 
     def distance(self, p1, p2):
         
@@ -232,18 +271,29 @@ class game:
 
         OUTPUT: "nearby_robots" and "nearby_shots" dictionaries structured as follows:
                 1)  nearby_robots = {
-                        robot_1:{pos:(x,y)
-                        }
-                        robot_2:{pos:(x,y)
+                        robot_1:{position:(x,y)
+                        },
+                        robot_2:{position:(x,y)
                         }
                         ...
                     }
                 2)  nearby_shots = {
-                        robot_1:{pos:(x,y)
-                        }
-                        robot_2:{pos:(x,y)
-                        }
-                        ...
+                        $robot_name_1: [{position: (x_1_1,y_1_1), direction: dir_1_1, power:pow_1_1},
+                                        {position: (x_1_2,y_1_2), direction: dir_1_1, power:pow_1_2},
+                                        ...
+                                        {position: (x_1_n,y_1_n), direction: dir_1_n, power:pow_1_n}
+                        ],
+                        $robot_name_2: [{position: (x_2_1,y_2_1), direction: dir_2_1, power:pow_2_1},
+                                        {position: (x_2_2,y_2_2), direction: dir_2_1, power:pow_2_2},
+                                        ...
+                                        {position: (x_2_n,y_2_n), direction: dir_1_n, power:pow_2_n}
+                        ],
+                        ...,
+                        $robot_name_m: [{position: (x_m_1,y_m_1), direction: dir_m_1, power:pow_m_1},
+                                        {position: (x_m_2,y_m_2), direction: dir_m_1, power:pow_m_2},
+                                        ...
+                                        {position: (x_m_n,y_m_n), direction: dir_m_n, power:pow_m_n}
+                        ],
                     }
         '''
 
@@ -322,10 +372,27 @@ class game:
                     self.ax.artists.remove(self.robots_stat[robot]['marker'])
                     self.robots_stat[robot]['marker'].center = (self.robots_stat[robot]['position'])
                 else:
-                    self.robots_stat[robot]['marker'] = plt.Circle(self.robots_stat[robot]['position'], self.robots_size, color='blue')
+                    self.robots_stat[robot]['marker'] = plt.Circle(self.robots_stat[robot]['position'], self.robots_size, color=self.robots_stat[robot]['color'])
                 self.ax.add_artist(self.robots_stat[robot]['marker'])
             else:
                 self.ax.artists.remove(self.robots_stat[robot]['marker'])
+        plt.draw()
+        plt.pause(0.001)
+        return True
+    
+    def draw_shots(self):
+        #placing the shots in the arena
+        for robot in self.robots_stat:
+            if self.robots_stat[robot]['health'] != None:
+                for shot_focus in self.robots_stat[robot]['shots']:
+                    if shot_focus['marker'] in self.ax.artists:
+                        self.ax.artists.remove(shot_focus['marker'])
+                        shot_focus['marker'].center = (shot_focus['position'])
+                    else:
+                        shot_focus['marker'] = plt.Circle(shot_focus['position'], self.shot_size, color=self.robots_stat[robot]['color'])
+                    self.ax.add_artist(shot_focus['marker'])
+            else:
+                self.ax.artists.remove(shot_focus['marker'])
         plt.draw()
         plt.pause(0.001)
         return True
