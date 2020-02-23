@@ -1,12 +1,17 @@
 from game_app import game
 import time
+import sys
+
+#Game graphical settings
+fps = 60
+match_length = 120
 
 #instantiating the game class
-game = game()
+game = game(fps)
 
 #----------------MAIN---------------------
 def main():
-    
+
     #--------MATCH INITIALIZATION---------
     #importing the robots in the robots folder
     game.import_robots()
@@ -23,13 +28,13 @@ def main():
     
     #--------MATCH EVOLUTION-------------
     start_time = time.time()
-    while time.time() - start_time < game.match_length:
+    while time.time() - start_time < match_length + 1:
         #starting evolving the match
-        game.animate_match()
+        game.animate_match(time.time() - start_time)
         game.draw_robots()
-        time.sleep(0.1)
+        game.draw_shots()
+        time.sleep(1/fps)
+        sys.stdout.flush()
     
     
-    
-
 main()

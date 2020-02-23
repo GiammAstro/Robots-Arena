@@ -15,10 +15,10 @@ class robot():
             A higher total number of skill points is not accepted. Each skill can have a maximum of 10 points
             so as example a speed of 11 or 16 is not allowed.
         '''
-        self.speed = 8
+        self.speed = 2
         self.power = 4
         self.view_radius = 0
-        self.shield = 4
+        self.shield = 0
         return True
     
     def move(self, position, players_in_radius, shots_in_radius):
