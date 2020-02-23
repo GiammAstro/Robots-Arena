@@ -384,7 +384,6 @@ class game:
                         #selecting robots in radius of view
                         curr_distance = self.distance(self.robots_stat[robot_focus]['position'], self.robots_stat[robot]['position'])
                         if curr_distance <= self.robots_stat[robot_focus]['view_radius']:
-                            
                             nearby_robots[robot_focus][robot] = {'position': self.robots_stat[robot]['position'], 'distance': curr_distance}
                         
                         #-------------SHOTS------------------#
@@ -411,7 +410,7 @@ class game:
         #reading the image that has to be used as arena background
         img = plt.imread("img/robot_wars_arena.jpg")
         #generating the arena figure and axes
-        self.fig = plt.figure(figsize=(7,7))
+        self.fig = plt.figure(figsize=(9,7))
         self.ax = self.fig.add_subplot(111)
         #placing the arena image as background
         self.ax.imshow(img, zorder=0, extent=[1.0, self.arena_x_dim, 1.0, self.arena_y_dim])
