@@ -15,7 +15,9 @@ import time
 
 class game:
 
-    def __init__(self, fps):
+    def __init__(self, fps, match_length):
+        #match length
+        self.match_length = match_length
         #folder where the robots are placed
         self.importing_folder = 'robots'
         #defining the robots list as empty
@@ -57,7 +59,9 @@ class game:
         #game physics
         self.time_step = 1
 
-    #----------------IMPORTING FUNCTION-----------------------
+    ##########################################################
+    #----------------IMPORTING FUNCTION----------------------#
+    ##########################################################
 
     def import_robots(self):
         #here we create a list of python files in the robots folder
@@ -86,16 +90,15 @@ class game:
                 print('imported robot %s' %(robot_curr.robot_name))
                 self.robots.append(robot_curr)
             print('Selected players %s' %(' '.join(robot_list)))
+            self.number_of_robots = len(robot_list)
         #if the number of imported robots exceed the number of maximum players we raise an error
         else:
             raise ValueError('ERROR: number of robots exceeds maximum number of %s participants' %(self.player_number))
         return True
 
-    #def battle:
-
-        #while self.alive_players > 1:
-    
-    #----------------INITIAL STATUS CREATION-----------------------
+    ###############################################################
+    #----------------INITIAL STATUS CREATION----------------------#
+    ###############################################################
 
     def place_robots(self):
         '''This function is placing the imported robots in a specified initial position in the arena.
@@ -117,12 +120,14 @@ class game:
             self.robots_stat[robot.robot_name]['shield'] = robot.shield
             self.robots_stat[robot.robot_name]['speed'] = robot.speed
             self.robots_stat[robot.robot_name]['power'] = robot.power
-            self.robots_stat[robot.robot_name]['view_radius'] = robot.view_radius
+            self.robots_stat[robot.robot_name]['view_radius'] = (2 * self.robots_size) + (robot.view_radius / 10 * self.robots_size * 6)
             self.robots_stat[robot.robot_name]['shots'] = []
             self.robots_stat[robot.robot_name]['marker'] = None
             counter += 1
     
-    #------------MATCH EVOLUTION FUNCTION------------------------
+    ######################################################
+    #------------MATCH EVOLUTION FUNCTION----------------#
+    ######################################################
 
     def animate_match(self, time):
         '''This function is moving the robots according to their decisions. 
@@ -133,26 +138,29 @@ class game:
            If a robot is dead its shots are removed from the arena.
         '''
 
+        #updating match time
+        self.time_box.set_text('TIME: %ss' %(int(self.match_length - time)))
+
+        #-----------NEARBY OBJECTS---------#
+        #first we look for nearby robots and shots
+        self.nearby_robots, self.nearby_shots = self.nearby_objects()
+
         #-----------QUERYING ROBOTS---------#
         #we cycle on each robot
         for robot_focus in self.robots:
             #we only ask to the robots that are still alive
             if self.robots_stat[robot_focus.robot_name]['health'] != None:
 
-                #-----------NEARBY OBJECTS---------#
-                #first we look for nearby robots and shots
-                nearby_robots, nearby_shots = self.nearby_objects(robot_focus.robot_name)
-
                 #-------------MOVEMENT-------------#
-                #then we ask the direction to the robot (that is free of chosing it on its own)
-                self.robots_stat[robot_focus.robot_name]['direction'] = robot_focus.move(self.robots_stat[robot_focus.robot_name]['position'], nearby_robots, nearby_shots)
+                #then we ask the direction to the robot
+                self.robots_stat[robot_focus.robot_name]['direction'] = robot_focus.move(self.robots_stat[robot_focus.robot_name]['position'], self.nearby_robots[robot_focus.robot_name], self.nearby_shots[robot_focus.robot_name])
                 
                 #------------SHOTS-----------------#
                 #we want to shoot with a specific frequency so we check if it is the correct time to shoot
                 if (time - self.shooting_time) > (1/self.shooting_freq):
                     self.shooting_time = time
                     #we ask to the robot if it wants to shoot
-                    shot_dir_focus = robot_focus.shoot(self.robots_stat[robot_focus.robot_name]['position'], nearby_robots, nearby_shots)
+                    shot_dir_focus = robot_focus.shoot(self.robots_stat[robot_focus.robot_name]['position'], self.nearby_robots[robot_focus.robot_name], self.nearby_shots[robot_focus.robot_name])
                     if shot_dir_focus != None:
                         self.robots_stat[robot_focus.robot_name]['shots'].append(
                             {'position': self.robots_stat[robot_focus.robot_name]['position'], 
@@ -176,12 +184,41 @@ class game:
     #-------------UTILITY FUNCTIONS------------------#
     ##################################################
 
+    def check_hit(self):
+        '''This function is in charge of checking if there is a hit between each robot and 
+           the shots coming from other robots. In case a hit is registered the health of the hitted 
+           robot is decreased according to the power of the robot that shot the bullet and if the health 
+           goes below zero the robot dies and its healt is set to None.
+        '''
+        #looping over the robot we want to focus on considering its nearby shots
+        for robot_focus in self.nearby_shots:
+            #looping over robots that shooted the nearby shots
+            for robot in self.nearby_shots[robot_focus]:
+                #looping over the shots
+                for shot_focus in self.nearby_shots[robot_focus][robot]:
+                    #we check the distance between the shots and "robot_focus"
+                    if shot_focus['distance'] <= (self.robots_size + self.shot_size):
+                        #if there is a hit we reduce the "robot_focus" health according to its shield and the power of the shot
+                        self.robots_stat[robot_focus]['health'] -= 10 + (shot_focus['power'] + 1) - int(self.robots_stat[robot_focus]['shield']/2) 
+                        #if then the health goes below or equal zero the robot dies
+                        if self.robots_stat[robot_focus]['health'] <=0:
+                            #we set the health to None
+                            self.robots_stat[robot_focus]['health'] = None
+        #counting the number of alive robots
+        count = 0
+        for robot_focus in self.robots_stat:
+            if self.robots_stat[robot_focus]['health'] == None:
+                count += 1
+        self.robots_alive = (self.number_of_robots - count)
+        
+        return True
+
     def move_robot(self, robot_name):
         '''This function is in charge of applying the movement to the robot, if it wants to, 
-        only is this move is allowed. Moving out of the arena or through another robot is not allowed. 
-        Each robot has a radius that determines its dimension and is scaled 
-        according to the arena size (it is given in percentage). 
-        The same happen for the velocity sckill which is rescaled according to the arena size (in principle a velocity skill)
+           only is this move is allowed. Moving out of the arena or through another robot is not allowed. 
+           Each robot has a radius that determines its dimension and is scaled 
+           according to the arena size (it is given in percentage). 
+           The same happen for the velocity skill which is rescaled according to the arena size.
         '''
         #scaling the velocity skill according to arena dimension
         velocity = self.robots_stat[robot_name]['speed'] /10 * self.speed_limit 
@@ -230,10 +267,10 @@ class game:
     
     def move_shots(self, robot_name):
         '''This function is in charge of applying the movement to the robot shots, if there are some.
-        The shots are moved all with the same velocity defined in "self.speed_shot" expressed as a quantity 
-        scaled to the robot maximum allowed velocity. 
-        Shots have to be faster than robots otherwise the probability of getting hitted are lower 
-        and the match lasts too long.
+           The shots are moved all with the same velocity defined in "self.speed_shot" expressed as a quantity 
+           scaled to the robot maximum allowed velocity. 
+           Shots have to be faster than robots otherwise the probability of getting hitted are lower 
+           and the match lasts too long.
         '''
 
         #first we check if the robot has shots to move
@@ -242,7 +279,10 @@ class game:
             for shot_focus in self.robots_stat[robot_name]['shots']:
                 #whe check if the shot went out of the arena (if yes we delete it)
                 if shot_focus['position'][0] > self.arena_x_dim or shot_focus['position'][0] < 0 or shot_focus['position'][1] > self.arena_y_dim or shot_focus['position'][1] < 0:
-                    self.robots_stat[robot_name]['shots'].remove(shot_focus)
+                    #first we delete the shot from the arena
+                    self.ax.artists.remove(shot_focus['marker'])
+                    #then we delete the shot object itself
+                    self.robots_stat[robot_name]['shots'].remove(shot_focus) 
                 else:   
                     #we compute the expected final position for the focused shot
                     shift_x = self.speed_shot * np.cos(np.radians(shot_focus['direction']))
@@ -262,39 +302,55 @@ class game:
         
         return dist
     
-    def nearby_objects(self, robot_focus):
-        '''This function returns, given the robot that we want to ficus on, 
-        the nearby objects (objects in the radius of view of the robot). These are given in the form of
-        two dictionaries.
+    def nearby_objects(self):
+        '''This function returns the nearby objects (objects in the radius of view of each robot). 
+            These are given in the form of two dictionaries.
 
-        INPUT: the name of the robot we are focusing on given as str
-
-        OUTPUT: "nearby_robots" and "nearby_shots" dictionaries structured as follows:
-                1)  nearby_robots = {
-                        robot_1:{position:(x,y)
-                        },
-                        robot_2:{position:(x,y)
+            OUTPUT: "nearby_robots" and "nearby_shots" dictionaries structured as follows:
+                    1)  nearby_robots = {
+                            $robot_focus_1:{ 
+                                $robot_1: {position:(x,y)
+                                },
+                                $robot_2:{position:(x,y)
+                                },
+                                ...
+                            },
+                            $robot_focus_2:{ 
+                                $robot_1: {position:(x,y)
+                                },
+                                $robot_2:{position:(x,y)
+                                },
+                                ...
+                            },
+                            ...
                         }
-                        ...
-                    }
-                2)  nearby_shots = {
-                        $robot_name_1: [{position: (x_1_1,y_1_1), direction: dir_1_1, power:pow_1_1},
-                                        {position: (x_1_2,y_1_2), direction: dir_1_1, power:pow_1_2},
-                                        ...
-                                        {position: (x_1_n,y_1_n), direction: dir_1_n, power:pow_1_n}
-                        ],
-                        $robot_name_2: [{position: (x_2_1,y_2_1), direction: dir_2_1, power:pow_2_1},
-                                        {position: (x_2_2,y_2_2), direction: dir_2_1, power:pow_2_2},
-                                        ...
-                                        {position: (x_2_n,y_2_n), direction: dir_1_n, power:pow_2_n}
-                        ],
-                        ...,
-                        $robot_name_m: [{position: (x_m_1,y_m_1), direction: dir_m_1, power:pow_m_1},
-                                        {position: (x_m_2,y_m_2), direction: dir_m_1, power:pow_m_2},
-                                        ...
-                                        {position: (x_m_n,y_m_n), direction: dir_m_n, power:pow_m_n}
-                        ],
-                    }
+                    2)  nearby_shots = {
+                            $robot_focus_1:{ 
+                                $robot_1: [{position: (x_1_1,y_1_1), direction: dir_1_1, power:pow_1_1},
+                                                {position: (x_1_2,y_1_2), direction: dir_1_1, power:pow_1_2},
+                                                ...
+                                                {position: (x_1_n,y_1_n), direction: dir_1_n, power:pow_1_n}
+                                ],
+                                $robot__2: [{position: (x_2_1,y_2_1), direction: dir_2_1, power:pow_2_1},
+                                                {position: (x_2_2,y_2_2), direction: dir_2_1, power:pow_2_2},
+                                                ...
+                                                {position: (x_2_n,y_2_n), direction: dir_1_n, power:pow_2_n}
+                                ],
+                                ...
+                            $robot_focus_m:{
+                                $robot_1: [{position: (x_1_1,y_1_1), direction: dir_1_1, power:pow_1_1},
+                                                {position: (x_1_2,y_1_2), direction: dir_1_1, power:pow_1_2},
+                                                ...
+                                                {position: (x_1_n,y_1_n), direction: dir_1_n, power:pow_1_n}
+                                ],
+                                $robot__2: [{position: (x_2_1,y_2_1), direction: dir_2_1, power:pow_2_1},
+                                                {position: (x_2_2,y_2_2), direction: dir_2_1, power:pow_2_2},
+                                                ...
+                                                {position: (x_2_n,y_2_n), direction: dir_1_n, power:pow_2_n}
+                                ],
+                                ...
+                            }
+                        }
         '''
 
         #everytime this function is called the two dictionaries for 
@@ -302,30 +358,42 @@ class game:
         nearby_robots = {}
         nearby_shots = {}
         
-        #we loop over the robots
-        for robot in self.robots_stat:
+        #we loop over the focused robots
+        for robot_focus in self.robots_stat:
             
-            #ignoring the focused robot
-            if robot != robot_focus and self.robots_stat[robot]['health'] != None:
+            #we consider only the alive robots
+            if self.robots_stat[robot_focus]['health'] != None:
                 
-                #-------------ROBOTS------------------#
-                #selecting robots in radius of view
-                if self.distance(self.robots_stat[robot_focus]['position'], self.robots_stat[robot]['position']) <= self.robots_stat[robot_focus]['view_radius']:
-                    nearby_robots[robot] = {'position': self.robots_stat[robot]['position']}
+                #first we have to create the dictionary for the correspondent robot that we are focusing on
+                nearby_robots[robot_focus] = {}
+                nearby_shots[robot_focus] = {}
                 
-                #-------------SHOTS------------------#
-                #selecting shots in radius of view
-                if len(self.robots_stat[robot]['shots']) > 0:
-                    #scanning through all the fired shots
-                    for shot_focus in self.robots_stat[robot]['shots']:
-                        #checking if the focused shot is inside the radius ov view of the focused robot
-                        if self.distance(self.robots_stat[robot_focus]['position'], shot_focus['position']) <= self.robots_stat[robot_focus]['view_radius']:
-                            #if this is the first nearby shot that is found we have to initialize the list
-                            if robot not in nearby_shots:
-                                nearby_shots[robot] = []
-                            #appending the nearby shot to the existing list
-                            nearby_shots[robot].append(shot_focus)
-        
+                #we loop over the robots
+                for robot in self.robots_stat:
+                    #ignoring the focused robot or the dead robots
+                    if robot != robot_focus and self.robots_stat[robot]['health'] != None:
+                        
+                        #-------------ROBOTS------------------#
+                        #selecting robots in radius of view
+                        curr_distance = self.distance(self.robots_stat[robot_focus]['position'], self.robots_stat[robot]['position'])
+                        if curr_distance <= self.robots_stat[robot_focus]['view_radius']:
+                            
+                            nearby_robots[robot_focus][robot] = {'position': self.robots_stat[robot]['position'], 'distance': curr_distance}
+                        
+                        #-------------SHOTS------------------#
+                        #selecting shots in radius of view
+                        if len(self.robots_stat[robot]['shots']) > 0:
+                            #scanning through all the fired shots
+                            for shot_focus in self.robots_stat[robot]['shots']:
+                                #checking if the focused shot is inside the radius ov view of the focused robot
+                                curr_distance = self.distance(self.robots_stat[robot_focus]['position'], shot_focus['position'])
+                                if curr_distance <= self.robots_stat[robot_focus]['view_radius']:
+                                    #if this is the first nearby shot that is found we have to initialize the list
+                                    if robot not in nearby_shots[robot_focus]:
+                                        nearby_shots[robot_focus][robot] = []
+                                    #appending the nearby shot to the existing list
+                                    nearby_shots[robot_focus][robot].append(shot_focus)
+            
         return nearby_robots, nearby_shots
 
     ####################################################
@@ -340,6 +408,8 @@ class game:
         self.ax = self.fig.add_subplot(111)
         #placing the arena image as background
         self.ax.imshow(img, zorder=0, extent=[1.0, self.arena_x_dim, 1.0, self.arena_y_dim])
+        #placing the time on the top of the arena
+        self.time_box = self.ax.text(35, 105, 'TIME: %ss' %(self.match_length), fontsize=20)
         plt.draw()
         plt.pause(2)
         return True
@@ -363,19 +433,19 @@ class game:
         countdown_obj.remove()
         plt.draw()
         
-    
     def draw_robots(self):
         #placing the robots in the arena
         for robot in self.robots_stat:
-            if self.robots_stat[robot]['health'] != None:
-                if self.robots_stat[robot]['marker'] in self.ax.artists:
-                    self.ax.artists.remove(self.robots_stat[robot]['marker'])
-                    self.robots_stat[robot]['marker'].center = (self.robots_stat[robot]['position'])
-                else:
-                    self.robots_stat[robot]['marker'] = plt.Circle(self.robots_stat[robot]['position'], self.robots_size, color=self.robots_stat[robot]['color'])
-                self.ax.add_artist(self.robots_stat[robot]['marker'])
+            if self.robots_stat[robot]['marker'] in self.ax.artists:
+                #self.ax.artists.remove(self.robots_stat[robot]['marker'])
+                self.robots_stat[robot]['marker'].center = (self.robots_stat[robot]['position'])
+                if self.robots_stat[robot]['health'] == None:
+                    self.robots_stat[robot]['marker'].set_facecolor('lightgray')
             else:
-                self.ax.artists.remove(self.robots_stat[robot]['marker'])
+                self.robots_stat[robot]['marker'] = plt.Circle(self.robots_stat[robot]['position'], self.robots_size, color=self.robots_stat[robot]['color'])
+                if self.robots_stat[robot]['health'] == None:
+                    self.robots_stat[robot]['marker'].set_facecolor('lightgray')
+                self.ax.add_artist(self.robots_stat[robot]['marker'])
         plt.draw()
         plt.pause(0.001)
         return True
@@ -383,16 +453,13 @@ class game:
     def draw_shots(self):
         #placing the shots in the arena
         for robot in self.robots_stat:
-            if self.robots_stat[robot]['health'] != None:
-                for shot_focus in self.robots_stat[robot]['shots']:
-                    if shot_focus['marker'] in self.ax.artists:
-                        self.ax.artists.remove(shot_focus['marker'])
-                        shot_focus['marker'].center = (shot_focus['position'])
-                    else:
-                        shot_focus['marker'] = plt.Circle(shot_focus['position'], self.shot_size, color=self.robots_stat[robot]['color'])
+            for shot_focus in self.robots_stat[robot]['shots']:
+                if shot_focus['marker'] in self.ax.artists:
+                    shot_focus['marker'].center = (shot_focus['position'])
+                else:
+                    shot_focus['marker'] = plt.Circle(shot_focus['position'], self.shot_size, color=self.robots_stat[robot]['color'])
                     self.ax.add_artist(shot_focus['marker'])
-            else:
-                self.ax.artists.remove(shot_focus['marker'])
+         
         plt.draw()
         plt.pause(0.001)
         return True
