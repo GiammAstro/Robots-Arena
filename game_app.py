@@ -197,13 +197,19 @@ class game:
                 #looping over the shots
                 for shot_focus in self.nearby_shots[robot_focus][robot]:
                     #we check the distance between the shots and "robot_focus"
-                    if shot_focus['distance'] <= (self.robots_size + self.shot_size):
+                    if shot_focus[1] <= (self.robots_size + self.shot_size):
                         #if there is a hit we reduce the "robot_focus" health according to its shield and the power of the shot
-                        self.robots_stat[robot_focus]['health'] -= 10 + (shot_focus['power'] + 1) - int(self.robots_stat[robot_focus]['shield']/2) 
+                        self.robots_stat[robot_focus]['health'] -= 10 + (shot_focus[0]['power'] + 1) - int(self.robots_stat[robot_focus]['shield']/2) 
                         #if then the health goes below or equal zero the robot dies
                         if self.robots_stat[robot_focus]['health'] <=0:
                             #we set the health to None
                             self.robots_stat[robot_focus]['health'] = None
+                        #if there is a hit we also want to remove it from the arena and finally from the shots list
+                        #first we delete the shot from the arena
+                        self.ax.artists.remove(shot_focus[0]['marker'])
+                        #then we delete the shot object itself from the robot that owns it
+                        self.robots_stat[robot]['shots'].remove(shot_focus[0]) 
+
         #counting the number of alive robots
         count = 0
         for robot_focus in self.robots_stat:
@@ -326,27 +332,28 @@ class game:
                         }
                     2)  nearby_shots = {
                             $robot_focus_1:{ 
-                                $robot_1: [{position: (x_1_1,y_1_1), direction: dir_1_1, power:pow_1_1},
-                                                {position: (x_1_2,y_1_2), direction: dir_1_1, power:pow_1_2},
-                                                ...
-                                                {position: (x_1_n,y_1_n), direction: dir_1_n, power:pow_1_n}
+                                $robot_1: [[{position: (x_1_1,y_1_1), direction: dir_1_1, power:pow_1_1}, distance_1_1],
+                                            [{position: (x_1_2,y_1_2), direction: dir_1_1, power:pow_1_2}, distance_1_2],
+                                            ...
+                                            [{position: (x_1_n,y_1_n), direction: dir_1_n, power:pow_1_n}, distance_1_n]
                                 ],
-                                $robot__2: [{position: (x_2_1,y_2_1), direction: dir_2_1, power:pow_2_1},
-                                                {position: (x_2_2,y_2_2), direction: dir_2_1, power:pow_2_2},
-                                                ...
-                                                {position: (x_2_n,y_2_n), direction: dir_1_n, power:pow_2_n}
+                                $robot__2: [[{position: (x_2_1,y_2_1), direction: dir_2_1, power:pow_2_1}, distance_2_1],
+                                            [{position: (x_2_2,y_2_2), direction: dir_2_1, power:pow_2_2}, distance_2_2],
+                                            ...
+                                            [{position: (x_2_n,y_2_n), direction: dir_1_n, power:pow_2_n}, distance_2_n]
                                 ],
                                 ...
+                            }
                             $robot_focus_m:{
-                                $robot_1: [{position: (x_1_1,y_1_1), direction: dir_1_1, power:pow_1_1},
-                                                {position: (x_1_2,y_1_2), direction: dir_1_1, power:pow_1_2},
-                                                ...
-                                                {position: (x_1_n,y_1_n), direction: dir_1_n, power:pow_1_n}
+                                $robot_1: [[{position: (x_1_1,y_1_1), direction: dir_1_1, power:pow_1_1}, distance_1_1],
+                                            [{position: (x_1_2,y_1_2), direction: dir_1_1, power:pow_1_2}, distance_1_2],
+                                            ...
+                                            [{position: (x_1_n,y_1_n), direction: dir_1_n, power:pow_1_n}, distance_1_n]
                                 ],
-                                $robot__2: [{position: (x_2_1,y_2_1), direction: dir_2_1, power:pow_2_1},
-                                                {position: (x_2_2,y_2_2), direction: dir_2_1, power:pow_2_2},
-                                                ...
-                                                {position: (x_2_n,y_2_n), direction: dir_1_n, power:pow_2_n}
+                                $robot__2: [[{position: (x_2_1,y_2_1), direction: dir_2_1, power:pow_2_1}, distance_2_1],
+                                            [{position: (x_2_2,y_2_2), direction: dir_2_1, power:pow_2_2}, distance_2_2],
+                                            ...
+                                            [{position: (x_2_n,y_2_n), direction: dir_1_n, power:pow_2_n}, distance_2_n]
                                 ],
                                 ...
                             }
@@ -392,7 +399,7 @@ class game:
                                     if robot not in nearby_shots[robot_focus]:
                                         nearby_shots[robot_focus][robot] = []
                                     #appending the nearby shot to the existing list
-                                    nearby_shots[robot_focus][robot].append(shot_focus)
+                                    nearby_shots[robot_focus][robot].append([shot_focus, curr_distance])
             
         return nearby_robots, nearby_shots
 

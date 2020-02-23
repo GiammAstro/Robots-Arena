@@ -15,7 +15,7 @@ class robot():
             A higher total number of skill points is not accepted. Each skill can have a maximum of 10 points
             so as example a speed of 11 or 16 is not allowed.
         '''
-        self.speed = 2
+        self.speed = 1
         self.power = 4
         self.view_radius = 0
         self.shield = 0
@@ -69,7 +69,7 @@ class robot():
                (clockwise from the orizontal right direction, corresponding to the positive x axis) given in degrees. 
                If no direction is given ("direction" = None) the robot will stand still
         '''
-        self.direction = 10
+        self.direction = 45
         return self.direction
     
     def shoot(self, position, players_in_radius, hots_in_radius):
