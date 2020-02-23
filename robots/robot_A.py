@@ -36,7 +36,7 @@ class robot():
                         ...
                         $robot_name_n: {position: (xn,yn)},
                     }
-            3) position and direction and power of the shots in the view radius given as:
+            3) position, direction, power and distance of the shots in the view radius given as:
                 - a tuple for the "position" property (x,y)
                 - an integer for the "direction" property of the shots given in degrees
                 - and integer for the "power" of the shots
