@@ -43,7 +43,7 @@ class robot():
                accessible from the "shots_in_radius" dictionary objects 
                structured as follows:
                     shots_in_radius = {
-                                $robot_name_1: [{position: (x_1_1,y_1_1), direction: dir_1_1, power:pow_1_1},
+                                $robot_name_1: [[{position: (x_1_1,y_1_1), direction: dir_1_1, power:pow_1_1}, distance],
                                                 {position: (x_1_2,y_1_2), direction: dir_1_1, power:pow_1_2},
                                                 ...
                                                 {position: (x_1_n,y_1_n), direction: dir_1_n, power:pow_1_n}

@@ -7,11 +7,15 @@ All the game limits, physics and graphics are defined here'''
 import os
 import sys
 import importlib.util
-from random import randint
 import copy
 import numpy as np
+import tkinter as tk
+import matplotlib
+matplotlib.use('TkAgg')
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
 import time
+
 
 class game:
 
@@ -124,6 +128,8 @@ class game:
             self.robots_stat[robot.robot_name]['shots'] = []
             self.robots_stat[robot.robot_name]['marker'] = None
             counter += 1
+        
+        self.robots_alive_number = counter
     
     ######################################################
     #------------MATCH EVOLUTION FUNCTION----------------#
@@ -215,7 +221,7 @@ class game:
         for robot_focus in self.robots_stat:
             if self.robots_stat[robot_focus]['health'] == None:
                 count += 1
-        self.robots_alive = (self.number_of_robots - count)
+        self.robots_alive_number = (self.number_of_robots - count)
         
         return True
 
@@ -416,8 +422,10 @@ class game:
         self.ax.imshow(img, zorder=0, extent=[1.0, self.arena_x_dim, 1.0, self.arena_y_dim])
         #placing the time on the top of the arena
         self.time_box = self.ax.text(35, 105, 'TIME: %ss' %(self.match_length), fontsize=20)
-        plt.draw()
-        plt.pause(2)
+        self.create_game_window()
+        #self.refresh_game()
+        #plt.draw()
+        #plt.pause(2)
         return True
     
     def display_countdown(self):
@@ -433,11 +441,14 @@ class game:
                 countdown_obj.set_text('GO!!')
             else:
                 countdown_obj.set_text('%s' %(self.countdown - i))
-            plt.draw()
-            plt.pause(1)
+            self.refresh_game()
+            time.sleep(1)
+            #plt.draw()
+            #plt.pause(1)
         #at the end of the countdown after the message has been displayed we remove it and the match starts
         countdown_obj.remove()
-        plt.draw()
+        self.refresh_game()
+        #plt.draw()
         
     def draw_robots(self):
         #placing the robots in the arena
@@ -452,8 +463,10 @@ class game:
                 if self.robots_stat[robot]['health'] == None:
                     self.robots_stat[robot]['marker'].set_facecolor('lightgray')
                 self.ax.add_artist(self.robots_stat[robot]['marker'])
-        plt.draw()
-        plt.pause(0.001)
+
+        self.refresh_game()
+        #plt.draw()
+        #plt.pause(0.001)
         return True
     
     def draw_shots(self):
@@ -466,6 +479,47 @@ class game:
                     shot_focus['marker'] = plt.Circle(shot_focus['position'], self.shot_size, color=self.robots_stat[robot]['color'])
                     self.ax.add_artist(shot_focus['marker'])
          
-        plt.draw()
-        plt.pause(0.001)
+        self.refresh_game()
+        #plt.draw()
+        #plt.pause(0.001)
         return True
+    
+    def create_game_window(self):
+        self.start = False
+        self.pause = False
+        self.root = tk.Tk()
+        self.frame_buttons = tk.Frame(self.root)
+        self.frame_buttons.grid(row=0, column=1)
+        self.canvas = FigureCanvasTkAgg(self.fig, master=self.root)
+        plot_widget = self.canvas.get_tk_widget()
+        plot_widget.grid(row=0, column=0)
+        
+        #self.Frame = tk.Frame(self.root, width=1350, height=50)  # Added "container" Frame.
+        #self.Frame.pack(side=tk.TOP, fill=tk.X, expand=1)
+
+        #self.titleLabel = tk.Label(self.Frame, font=('arial', 12, 'bold'),
+        #                text="Vehicle Window Fitting - Management System",
+        #                bd=5, anchor=tk.W)
+        #self.titleLabel.pack(side=tk.LEFT)
+        
+        Button_Start = tk.Button(self.frame_buttons,text="Start", command=self.start_trigger)
+        Button_Start.pack(side='left', padx = 10)
+        Button_Pause = tk.Button(self.frame_buttons,text="Pause", command=self.pause_trigger)
+        Button_Pause.pack(side='left', padx = 10)
+        Button_Quit = tk.Button(self.frame_buttons,text="Quit", command=self.quit)
+        Button_Quit.pack(side='left', padx = 10)
+
+    def refresh_game(self):
+        self.canvas.draw()
+        self.root.update()
+    
+    def quit(self):
+        self.root.destroy()
+    
+    def start_trigger(self):
+        self.start = True
+    
+    def pause_trigger(self):
+        self.pause = True
+        self.start = False
+
