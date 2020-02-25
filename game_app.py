@@ -121,6 +121,8 @@ class game:
             #each robot has also a color
             self.robots_stat[robot.robot_name]['color'] = self.robot_colors[counter]
             self.robots_stat[robot.robot_name]['health'] = 100
+            self.robots_stat[robot.robot_name]['fired_shots'] = 0
+            self.robots_stat[robot.robot_name]['suffered_hits'] = 0
             self.robots_stat[robot.robot_name]['shield'] = robot.shield
             self.robots_stat[robot.robot_name]['speed'] = robot.speed
             self.robots_stat[robot.robot_name]['power'] = robot.power
@@ -168,6 +170,9 @@ class game:
                     #we ask to the robot if it wants to shoot
                     shot_dir_focus = robot_focus.shoot(self.robots_stat[robot_focus.robot_name]['position'], self.nearby_robots[robot_focus.robot_name], self.nearby_shots[robot_focus.robot_name])
                     if shot_dir_focus != None:
+                        #we update the number of shots fired by the robot
+                        self.robots_stat[robot_focus.robot_name]['fired_shots'] += 1
+                        #we update the statistics of the robot inserting the shot information in the shots list
                         self.robots_stat[robot_focus.robot_name]['shots'].append(
                             {'position': self.robots_stat[robot_focus.robot_name]['position'], 
                             'direction': shot_dir_focus, 
@@ -204,6 +209,8 @@ class game:
                 for shot_focus in self.nearby_shots[robot_focus][robot]:
                     #we check the distance between the shots and "robot_focus"
                     if shot_focus[1] <= (self.robots_size + self.shot_size):
+                        #if the robot_focus got hitted we update its statistisc
+                        self.robots_stat[robot_focus]['suffered_hits'] += 1
                         #if there is a hit we reduce the "robot_focus" health according to its shield and the power of the shot
                         self.robots_stat[robot_focus]['health'] -= 10 + (shot_focus[0]['power'] + 1) - int(self.robots_stat[robot_focus]['shield']/2) 
                         #if then the health goes below or equal zero the robot dies
@@ -227,10 +234,13 @@ class game:
 
     def move_robot(self, robot_name):
         '''This function is in charge of applying the movement to the robot, if it wants to, 
-           only is this move is allowed. Moving out of the arena or through another robot is not allowed. 
-           Each robot has a radius that determines its dimension and is scaled 
-           according to the arena size (it is given in percentage). 
-           The same happen for the velocity skill which is rescaled according to the arena size.
+            only is this move is allowed. Moving out of the arena or through another robot is not allowed. 
+            Each robot has a radius that determines its dimension and is scaled 
+            according to the arena size (it is given in percentage). 
+            The same happen for the velocity skill which is rescaled according to the arena size.
+            
+            INPUT:
+            1) the name of the robot of which we want to move the position
         '''
         #scaling the velocity skill according to arena dimension
         velocity = self.robots_stat[robot_name]['speed'] /10 * self.speed_limit 
@@ -279,10 +289,13 @@ class game:
     
     def move_shots(self, robot_name):
         '''This function is in charge of applying the movement to the robot shots, if there are some.
-           The shots are moved all with the same velocity defined in "self.speed_shot" expressed as a quantity 
-           scaled to the robot maximum allowed velocity. 
-           Shots have to be faster than robots otherwise the probability of getting hitted are lower 
-           and the match lasts too long.
+            The shots are moved all with the same velocity defined in "self.speed_shot" expressed as a quantity 
+            scaled to the robot maximum allowed velocity. 
+            Shots have to be faster than robots otherwise the probability of getting hitted are lower 
+            and the match lasts too long.
+           
+            INPUT:
+            1) the name of the robot of which we want to move the shots 
         '''
 
         #first we check if the robot has shots to move
@@ -307,7 +320,13 @@ class game:
         return True
 
     def distance(self, p1, p2):
-        
+        '''This function returns the linear distance between two points in the arena.
+            INPUT:
+            1) p1 = (x_1, y_1) tuple of integers
+            2) p2 = (x_2, y_2) tuple of integers
+            OUTPUTS:
+            1) distance between the two points
+        '''
         a = np.array(p1)
         b = np.array(p2)
         dist = np.linalg.norm(a-b)
@@ -423,9 +442,6 @@ class game:
         #placing the time on the top of the arena
         self.time_box = self.ax.text(35, 105, 'TIME: %ss' %(self.match_length), fontsize=20)
         self.create_game_window()
-        #self.refresh_game()
-        #plt.draw()
-        #plt.pause(2)
         return True
     
     def display_countdown(self):
@@ -443,12 +459,9 @@ class game:
                 countdown_obj.set_text('%s' %(self.countdown - i))
             self.refresh_game()
             time.sleep(1)
-            #plt.draw()
-            #plt.pause(1)
         #at the end of the countdown after the message has been displayed we remove it and the match starts
         countdown_obj.remove()
         self.refresh_game()
-        #plt.draw()
         
     def draw_robots(self):
         #placing the robots in the arena
@@ -465,8 +478,6 @@ class game:
                 self.ax.add_artist(self.robots_stat[robot]['marker'])
 
         self.refresh_game()
-        #plt.draw()
-        #plt.pause(0.001)
         return True
     
     def draw_shots(self):
@@ -480,37 +491,95 @@ class game:
                     self.ax.add_artist(shot_focus['marker'])
          
         self.refresh_game()
-        #plt.draw()
-        #plt.pause(0.001)
         return True
     
     def create_game_window(self):
         self.start = False
         self.pause = False
         self.root = tk.Tk()
-        self.frame_buttons = tk.Frame(self.root)
-        self.frame_buttons.grid(row=0, column=1)
-        self.canvas = FigureCanvasTkAgg(self.fig, master=self.root)
-        plot_widget = self.canvas.get_tk_widget()
-        plot_widget.grid(row=0, column=0)
-        
-        #self.Frame = tk.Frame(self.root, width=1350, height=50)  # Added "container" Frame.
-        #self.Frame.pack(side=tk.TOP, fill=tk.X, expand=1)
 
-        #self.titleLabel = tk.Label(self.Frame, font=('arial', 12, 'bold'),
-        #                text="Vehicle Window Fitting - Management System",
-        #                bd=5, anchor=tk.W)
-        #self.titleLabel.pack(side=tk.LEFT)
+        #-----------frame left--------------------
+        self.frame_image = tk.Frame(self.root, highlightbackground="black", highlightthickness=1, relief='raised')
+        self.frame_image.grid(row=0, column=0)
+        self.canvas = FigureCanvasTkAgg(self.fig, master=self.frame_image)
+        plot_widget = self.canvas.get_tk_widget()
+        plot_widget.pack(side='top')
+
+        #----------frame right--------------------
+        self.frame_right = tk.Frame(self.root)
+        self.frame_right.grid(row=0, column=1)
         
+        #-----------frame buttons-----------------
+        self.frame_buttons = tk.Frame(self.frame_right)
+        self.frame_buttons.grid(row=0, column=0)
         Button_Start = tk.Button(self.frame_buttons,text="Start", command=self.start_trigger)
         Button_Start.pack(side='left', padx = 10)
         Button_Pause = tk.Button(self.frame_buttons,text="Pause", command=self.pause_trigger)
         Button_Pause.pack(side='left', padx = 10)
+        Button_Reset = tk.Button(self.frame_buttons,text="Reset", command=self.reset_trigger)
+        Button_Reset.pack(side='left', padx = 10)
         Button_Quit = tk.Button(self.frame_buttons,text="Quit", command=self.quit)
         Button_Quit.pack(side='left', padx = 10)
 
+        #-----------frame players stats------------
+        self.frame_stats = tk.Frame(self.frame_right, highlightbackground="black", highlightthickness=1)
+        self.frame_stats.grid(row=1, column=0)
+        #titleframe
+        self.frame_stats_title = tk.Frame(self.frame_stats)
+        self.frame_stats_title.grid(row=0, column=0)
+        titleLabel = tk.Label(self.frame_stats_title, font=('arial', 12, 'bold'),
+                        text="Robots statistics",
+                        bd=5)
+        titleLabel.pack(side='top')
+        #statistics_frame
+        self.frame_stats_numbers = tk.Frame(self.frame_stats)
+        self.frame_stats_numbers.grid(row=1, column=0)
+        # headers of the columns
+        header_name = tk.Label(self.frame_stats_numbers, font=('arial', 12, 'bold'),
+                            text="Name", bd=5).grid(row=0, column=0)
+        header_health = tk.Label(self.frame_stats_numbers, font=('arial', 12, 'bold'),
+                            text="Health", bd=5).grid(row=0, column=1)
+        header_fired = tk.Label(self.frame_stats_numbers, font=('arial', 12, 'bold'),
+                            text="Fired shots", bd=5).grid(row=0, column=2)
+        header_suffered = tk.Label(self.frame_stats_numbers, font=('arial', 12, 'bold'),
+                            text="Suffered hits", bd=5).grid(row=0, column=3)
+
+        #this is the dictionary that will contain the labels for the players statistics
+        self.robots_stat_labels = {}
+        count = 1
+        for robot_focus in self.robots_stat:
+            self.robots_stat_labels[robot_focus] = {}
+            self.robots_stat_labels[robot_focus]['name'] = tk.Label(self.frame_stats_numbers, font=('arial', 12, 'bold'),
+                                                        text="%s" %(robot_focus),
+                                                        bd=5)
+            self.robots_stat_labels[robot_focus]['name'].grid(row=count, column=0)
+            self.robots_stat_labels[robot_focus]['health'] = tk.Label(self.frame_stats_numbers, font=('arial', 12, 'bold'),
+                                                        text="%s" %(self.robots_stat[robot_focus]['health']),
+                                                        bd=5)
+            self.robots_stat_labels[robot_focus]['health'].grid(row=count, column=1)
+            self.robots_stat_labels[robot_focus]['fired'] = tk.Label(self.frame_stats_numbers, font=('arial', 12, 'bold'),
+                                                        text="%s" %(self.robots_stat[robot_focus]['fired_shots']),
+                                                        bd=5)
+            self.robots_stat_labels[robot_focus]['fired'].grid(row=count, column=2)
+            self.robots_stat_labels[robot_focus]['suffered'] = tk.Label(self.frame_stats_numbers, font=('arial', 12, 'bold'),
+                                                        text="%s" %(self.robots_stat[robot_focus]['suffered_hits']),
+                                                        bd=5)
+            self.robots_stat_labels[robot_focus]['suffered'].grid(row=count, column=3)
+
+            count += 1
+    
+    def refresh_stat_labels(self):
+        '''This function has the purpose of refreshing the statistics of the robots 
+            that are displayed in the game interface
+        '''
+        for robot_focus in self.robots_stat_labels:
+            self.robots_stat_labels[robot_focus]['health'].config(text="%s" %(self.robots_stat[robot_focus]['health']))
+            self.robots_stat_labels[robot_focus]['fired'].config(text="%s" %(self.robots_stat[robot_focus]['fired_shots']))
+            self.robots_stat_labels[robot_focus]['suffered'].config(text="%s" %(self.robots_stat[robot_focus]['suffered_hits']))
+    
     def refresh_game(self):
         self.canvas.draw()
+        self.refresh_stat_labels()
         self.root.update()
     
     def quit(self):
@@ -521,5 +590,9 @@ class game:
     
     def pause_trigger(self):
         self.pause = True
+        self.start = False
+    
+    def reset_trigger(self):
+        self.pause = False
         self.start = False
 
