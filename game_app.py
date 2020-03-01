@@ -104,11 +104,19 @@ class game:
 
     def reset_game(self):
         '''This function is resetting the game to its initial conditions. In order to be able to start the match again.
+            The reset is done by deleting all the artists from the matplotlib axes,
+            by clearing the robots markers and shots list in the robots statistics
+            and by finally resetting the remaining game time.
         '''
         #removing all artists from plot
         for artist in self.ax.artists:
-            print(artist)
             artist.remove()
+        #reinitializing the robots statistics
+        for robot_focus in self.robots_stat:
+            self.robots_stat[robot_focus]['marker'] = None
+            self.robots_stat[robot_focus]['shots'] = []
+        #resetting match time
+        self.time_box.set_text('TIME: %ss' %(int(self.match_length)))
         self.refresh_game()
         self.place_robots()
         self.draw_robots()
@@ -506,6 +514,7 @@ class game:
         self.start = False
         self.pause = False
         self.reset = False
+        self.quit = False
         self.root = tk.Tk()
 
         #-----------frame left--------------------
@@ -528,7 +537,7 @@ class game:
         Button_Pause.pack(side='left', padx = 10)
         Button_Reset = tk.Button(self.frame_buttons,text="Reset", command=self.reset_trigger)
         Button_Reset.pack(side='left', padx = 10)
-        Button_Quit = tk.Button(self.frame_buttons,text="Quit", command=self.quit)
+        Button_Quit = tk.Button(self.frame_buttons,text="Quit", command=self.quit_trigger)
         Button_Quit.pack(side='left', padx = 10)
 
         #-----------frame players stats------------
@@ -591,7 +600,8 @@ class game:
         self.refresh_stat_labels()
         self.root.update()
     
-    def quit(self):
+    def quit_trigger(self):
+        self.quit
         self.root.destroy()
     
     def start_trigger(self):

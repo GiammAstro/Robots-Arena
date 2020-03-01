@@ -39,6 +39,9 @@ def main():
         
         #for every loop we refresh the game
         game.refresh_game()
+
+        if game.quit == True:
+            break
         
         if game.pause == True:
             while (game.start != True) and (game.reset != True):
