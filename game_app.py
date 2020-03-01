@@ -24,16 +24,12 @@ class game:
         self.match_length = match_length
         #folder where the robots are placed
         self.importing_folder = 'robots'
-        #defining the robots list as empty
-        self.robots = []
         #defining the dictionary containing the robot statuses
         self.robots_stat = {}
-        #defining the animation step used for counting how many steps we took in the game simulation
-        self.animation_step = 0
         #players that participate to a match
         self.max_player_number = 4
         self.initial_positions = [(8,8),(92,92),(8,92),(92,8)]
-        self.robot_colors = ['blue', 'yellow', 'green', 'magenta']
+        self.robot_colors = ['blue', 'magenta', 'orange', 'green']
         #dimensions of the arena
         self.arena_x_dim = 100
         self.arena_y_dim = 100
@@ -68,6 +64,8 @@ class game:
     ##########################################################
 
     def import_robots(self):
+        #defining the robots list as empty
+        self.robots = []
         #here we create a list of python files in the robots folder
         robot_list = [x for x in os.listdir(self.importing_folder) if x.endswith('.py')]
         #if there are no robots we raise an error
@@ -103,6 +101,25 @@ class game:
     ###############################################################
     #----------------INITIAL STATUS CREATION----------------------#
     ###############################################################
+
+    def reset_game(self):
+        '''This function is resetting the game to its initial conditions. In order to be able to start the match again.
+            The reset is done by deleting all the artists from the matplotlib axes,
+            by clearing the robots markers and shots list in the robots statistics
+            and by finally resetting the remaining game time.
+        '''
+        #removing all artists from plot
+        for artist in self.ax.artists:
+            artist.remove()
+        #reinitializing the robots statistics
+        for robot_focus in self.robots_stat:
+            self.robots_stat[robot_focus]['marker'] = None
+            self.robots_stat[robot_focus]['shots'] = []
+        #resetting match time
+        self.time_box.set_text('TIME: %ss' %(int(self.match_length)))
+        self.refresh_game()
+        self.place_robots()
+        self.draw_robots()
 
     def place_robots(self):
         '''This function is placing the imported robots in a specified initial position in the arena.
@@ -496,6 +513,8 @@ class game:
     def create_game_window(self):
         self.start = False
         self.pause = False
+        self.reset = False
+        self.quit = False
         self.root = tk.Tk()
 
         #-----------frame left--------------------
@@ -518,7 +537,7 @@ class game:
         Button_Pause.pack(side='left', padx = 10)
         Button_Reset = tk.Button(self.frame_buttons,text="Reset", command=self.reset_trigger)
         Button_Reset.pack(side='left', padx = 10)
-        Button_Quit = tk.Button(self.frame_buttons,text="Quit", command=self.quit)
+        Button_Quit = tk.Button(self.frame_buttons,text="Quit", command=self.quit_trigger)
         Button_Quit.pack(side='left', padx = 10)
 
         #-----------frame players stats------------
@@ -527,7 +546,7 @@ class game:
         #titleframe
         self.frame_stats_title = tk.Frame(self.frame_stats)
         self.frame_stats_title.grid(row=0, column=0)
-        titleLabel = tk.Label(self.frame_stats_title, font=('arial', 12, 'bold'),
+        titleLabel = tk.Label(self.frame_stats_title, font=('arial', 16, 'bold'),
                         text="Robots statistics",
                         bd=5)
         titleLabel.pack(side='top')
@@ -535,13 +554,13 @@ class game:
         self.frame_stats_numbers = tk.Frame(self.frame_stats)
         self.frame_stats_numbers.grid(row=1, column=0)
         # headers of the columns
-        header_name = tk.Label(self.frame_stats_numbers, font=('arial', 12, 'bold'),
+        header_name = tk.Label(self.frame_stats_numbers, font=('arial', 14, 'bold'),
                             text="Name", bd=5).grid(row=0, column=0)
-        header_health = tk.Label(self.frame_stats_numbers, font=('arial', 12, 'bold'),
+        header_health = tk.Label(self.frame_stats_numbers, font=('arial', 14, 'bold'),
                             text="Health", bd=5).grid(row=0, column=1)
-        header_fired = tk.Label(self.frame_stats_numbers, font=('arial', 12, 'bold'),
+        header_fired = tk.Label(self.frame_stats_numbers, font=('arial', 14, 'bold'),
                             text="Fired shots", bd=5).grid(row=0, column=2)
-        header_suffered = tk.Label(self.frame_stats_numbers, font=('arial', 12, 'bold'),
+        header_suffered = tk.Label(self.frame_stats_numbers, font=('arial', 14, 'bold'),
                             text="Suffered hits", bd=5).grid(row=0, column=3)
 
         #this is the dictionary that will contain the labels for the players statistics
@@ -550,20 +569,19 @@ class game:
         for robot_focus in self.robots_stat:
             self.robots_stat_labels[robot_focus] = {}
             self.robots_stat_labels[robot_focus]['name'] = tk.Label(self.frame_stats_numbers, font=('arial', 12, 'bold'),
-                                                        text="%s" %(robot_focus),
-                                                        bd=5)
+                                                        text="%s" %(robot_focus), bd=5, foreground=self.robots_stat[robot_focus]['color'])
             self.robots_stat_labels[robot_focus]['name'].grid(row=count, column=0)
             self.robots_stat_labels[robot_focus]['health'] = tk.Label(self.frame_stats_numbers, font=('arial', 12, 'bold'),
                                                         text="%s" %(self.robots_stat[robot_focus]['health']),
-                                                        bd=5)
+                                                        bd=5, foreground=self.robots_stat[robot_focus]['color'])
             self.robots_stat_labels[robot_focus]['health'].grid(row=count, column=1)
             self.robots_stat_labels[robot_focus]['fired'] = tk.Label(self.frame_stats_numbers, font=('arial', 12, 'bold'),
                                                         text="%s" %(self.robots_stat[robot_focus]['fired_shots']),
-                                                        bd=5)
+                                                        bd=5, foreground=self.robots_stat[robot_focus]['color'])
             self.robots_stat_labels[robot_focus]['fired'].grid(row=count, column=2)
             self.robots_stat_labels[robot_focus]['suffered'] = tk.Label(self.frame_stats_numbers, font=('arial', 12, 'bold'),
                                                         text="%s" %(self.robots_stat[robot_focus]['suffered_hits']),
-                                                        bd=5)
+                                                        bd=5, foreground=self.robots_stat[robot_focus]['color'])
             self.robots_stat_labels[robot_focus]['suffered'].grid(row=count, column=3)
 
             count += 1
@@ -582,17 +600,22 @@ class game:
         self.refresh_stat_labels()
         self.root.update()
     
-    def quit(self):
+    def quit_trigger(self):
+        self.quit
         self.root.destroy()
     
     def start_trigger(self):
         self.start = True
+        self.reset = False
+        self.pause = False
     
     def pause_trigger(self):
         self.pause = True
         self.start = False
+        self.reset = False
     
     def reset_trigger(self):
-        self.pause = False
+        self.reset = True
+        self.pause = True
         self.start = False
 
