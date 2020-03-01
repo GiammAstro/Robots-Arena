@@ -21,7 +21,7 @@ class robot():
         self.shield = 0
         return True
     
-    def move(self, position, players_in_radius, shots_in_radius):
+    def move(self, __pos, __players_in_radius, __shots_in_radius):
         '''Here you can chose how you want your robot to move in the arena,
             basing on the information that you have.
             
@@ -72,7 +72,7 @@ class robot():
         self.direction = 45
         return self.direction
     
-    def shoot(self, position, players_in_radius, hots_in_radius):
+    def shoot(self, __pos, __players_in_radius, __shots_in_radius):
         '''Here you can chose how you want your robot to shoot in the arena,
             basing on the information that you have.
             
