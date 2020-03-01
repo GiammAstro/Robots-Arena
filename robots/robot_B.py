@@ -35,6 +35,7 @@ class robot():
             the movement direction expressed in the form of the angular direction in the field 
             (clockwise from the vertical up direction) given in degrees. If no direction is given ("direction" = None) the robot will stand still
         '''
+        print(__shots_in_radius)
         direction = None
         return direction
     

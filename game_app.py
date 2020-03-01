@@ -64,6 +64,9 @@ class game:
     ##########################################################
 
     def import_robots(self):
+        '''This function is importing the robots (python scripts) that are placed in the robots folder
+        and checking if their parameters are ok.
+        '''
         #defining the robots list as empty
         self.robots = []
         #here we create a list of python files in the robots folder
@@ -214,7 +217,8 @@ class game:
 
     def check_hit(self):
         '''This function is in charge of checking if there is a hit between each robot and 
-           the shots coming from other robots. In case a hit is registered the health of the hitted 
+           the shots coming from other robots. 
+           In case a hit is registered the health of the hitted 
            robot is decreased according to the power of the robot that shot the bullet and if the health 
            goes below zero the robot dies and its healt is set to None.
         '''
@@ -459,7 +463,6 @@ class game:
         #placing the time on the top of the arena
         self.time_box = self.ax.text(35, 105, 'TIME: %ss' %(self.match_length), fontsize=20)
         self.create_game_window()
-        return True
     
     def display_countdown(self):
         #placing the current number of the countdown in the centre of the arena
@@ -495,7 +498,6 @@ class game:
                 self.ax.add_artist(self.robots_stat[robot]['marker'])
 
         self.refresh_game()
-        return True
     
     def draw_shots(self):
         #placing the shots in the arena
@@ -508,9 +510,10 @@ class game:
                     self.ax.add_artist(shot_focus['marker'])
          
         self.refresh_game()
-        return True
     
     def create_game_window(self):
+        '''This function is creating the game window and managing its layout.
+        '''
         self.start = False
         self.pause = False
         self.reset = False
@@ -588,7 +591,10 @@ class game:
     
     def refresh_stat_labels(self):
         '''This function has the purpose of refreshing the statistics of the robots 
-            that are displayed in the game interface
+            that are displayed in the game interface. This is done by:
+            1) resetting the health of the already loaded robots
+            2) resetting the fired shots number
+            3) resetting the number of suffered hits
         '''
         for robot_focus in self.robots_stat_labels:
             self.robots_stat_labels[robot_focus]['health'].config(text="%s" %(self.robots_stat[robot_focus]['health']))
@@ -596,25 +602,45 @@ class game:
             self.robots_stat_labels[robot_focus]['suffered'].config(text="%s" %(self.robots_stat[robot_focus]['suffered_hits']))
     
     def refresh_game(self):
+        '''This function refreshes the game by:
+            1) redrawing the arena, drawing the canvas in which it is included
+            2) refreshing the labels on the right side showing the robots statistics
+            3) updating the Tkinter root
+        '''
         self.canvas.draw()
         self.refresh_stat_labels()
         self.root.update()
     
     def quit_trigger(self):
-        self.quit
-        self.root.destroy()
+        '''This function is called when the Quit button is pressed.
+            It sets the "quit" internal variable to true 
+            and it is then intercepted in the main functionof the game
+        '''
+        self.quit = True
     
     def start_trigger(self):
+        '''This function is called when the Start button is pressed.
+            It sets the "start" internal variable to true, the "reset" and the "pause" to false (these 3 actions are excluding each other)
+            and it is then intercepted in the main functionof the game
+        '''
         self.start = True
         self.reset = False
         self.pause = False
     
     def pause_trigger(self):
+        '''This function is called when the Pause button is pressed.
+            It sets the "pause" internal variable to true, the "reset" and the "start" to false (these 3 actions are excluding each other)
+            and it is then intercepted in the main functionof the game
+        '''
         self.pause = True
         self.start = False
         self.reset = False
     
     def reset_trigger(self):
+        '''This function is called when the Reset button is pressed.
+            It sets the "reset" internal variable to true, the "start" and the "pause" to false (these 3 actions are excluding each other)
+            and it is then intercepted in the main functionof the game
+        '''
         self.reset = True
         self.pause = True
         self.start = False
