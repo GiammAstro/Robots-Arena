@@ -28,7 +28,7 @@ def main():
     countdown = True # when we will press on start we want the countdown to be shown
     
     #we loop until the maximum time is not finished or there is a winner
-    while delta_time < match_length + 1 or game.robots_alive_number != 1:
+    while delta_time < match_length + 1 and game.robots_alive_number != 1:
         
         #for every loop we refresh the game 
         #(this refreshes the current value of the triggers and allows us 
@@ -70,6 +70,13 @@ def main():
             time.sleep(1/fps)
             sys.stdout.flush()
             delta_time += time.time() - time_1
+    
+    if game.robots_alive_number == 1:
+        game.show_winner()
+        time.sleep(10)
+    else:
+        game.show_no_winner()
+        time.sleep(10)
 
 if __name__ == '__main__':              
     main()

@@ -16,7 +16,6 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
 import time
 
-
 class game:
 
     def __init__(self, fps, match_length):
@@ -481,6 +480,29 @@ class game:
             time.sleep(1)
         #at the end of the countdown after the message has been displayed we remove it and the match starts
         countdown_obj.remove()
+        self.refresh_game()
+    
+    def show_winner(self):
+        '''If theis function is called it means that there is a winner since the number of alive robots is 1.
+            The function then displays a message that tells to the players who 
+            is the winner in the centre of the arena.
+        '''
+        for robot_focus in self.robots_stat:
+            if self.robots_stat[robot_focus]['health'] != None:
+                self.winner = robot_focus
+        self.ax.annotate('WINNER: %s' %(self.winner), (50, 50),
+                fontsize=50, horizontalalignment='center', verticalalignment='center', color='red')
+        self.refresh_game()
+    
+    def show_no_winner(self):
+        '''If theis function is called it means that there is no winner and the time for the match has expired.
+            The function then displays a message that tells to the players that there was no winner of the match.
+        '''
+        for robot_focus in self.robots_stat:
+            if self.robots_stat[robot_focus]['health'] != None:
+                self.winner = robot_focus
+        self.ax.annotate('NO WINNER', (50, 50),
+                fontsize=50, horizontalalignment='center', verticalalignment='center', color='red')
         self.refresh_game()
         
     def draw_robots(self):
