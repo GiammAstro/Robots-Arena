@@ -137,7 +137,7 @@ Each robot is defined as a python class that is imported when the robots are loa
 
 1) "skills" function: this function contains the 4 robot skills that can be set using a total of 16 skill points with a maximum of 10 points per each skill. The skills are "speed", "power", "view_radius" and "shield".
 
-    def skills(self):
+      def skills(self):
         '''In this function you can define the 4 skills of your robot which are:
             1) the speed "self.speed"
             2) the shooting power "self.power"
@@ -164,7 +164,7 @@ Each robot is defined as a python class that is imported when the robots are loa
 
 2) "move" function: this function receives as input the position of the robot specified in the "__pos" tuple and the position of the nearby robots and shots given in the two dictionaries "__players_in_radius" and "__shots_in_radius". The output of the function has to be given in the form of angular direction of movement in degrees. The algorithm inside the function has to be implemented by the user in order to decide how the robot should behave basing on the input information.
 
-    def move(self, __pos, __players_in_radius, __shots_in_radius):
+      def move(self, __pos, __players_in_radius, __shots_in_radius):
         ''''Here you can chose how you want your robot to move in the arena,
             basing on the information that you have.
             
