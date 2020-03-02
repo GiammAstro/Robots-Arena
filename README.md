@@ -85,7 +85,7 @@ The following diagram is showing the aforementioned blocks in the way they are c
             |                          IF PAUSE -- TRUE -- PAUSING THE GAME (g)
             |
             |                             |
-    WHILE TIME != 0 OR NOT WINNER         V
+    WHILE TIME != 0 AND NOT WINNER        V
             |
             |                          IF RESET -- TRUE -- RESETTING THE GAME (h)
             |
