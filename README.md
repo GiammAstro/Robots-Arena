@@ -118,9 +118,99 @@ In order to run the game the ROBOTS-ARENA.py script has to be run. The robots th
 - RULES AND INSTRUCTIONS OF THE GAME
 
 -- Game Mechanics --
+The game is structure in a way that the complete evolution of the match can be summarized in the following list of actions:
+
+1) robot movement: a robot can move inside the arena and is asked for which direction it wants to move according to the velocity that is specified in the robot definition file (the robot AI python code). A robot cannot move out of the arena and is only asked for the direction. The movement itself is applied by the game loop and the final position of the robot is generated in the game loop. A robot can never impose its final position but only suggest to the game in which direction it would like to move.
+
+2) shots evolution: each robot is asked once every 2 seconds if it wants to fire a shot and in which direction. The will to fire and the direction are chosen by the robot according to its AI. The game will then evolve the position of the shots in the arena until they move out of it or hit another robot. In both cases the interested shot is deleted from the arena. 
+
+3) hit checking: at every game cycle a check for the shot-robot hit is performed. In case a hit is verified the effects of the event on the interested robot and shot are applied. The health of the robot is decreased according to the power of the shot and the shielding of the robot, and set to None in case it goes below or equal to zero. The interested shot is deleted from the arena once the hit has been validated. The game will check for hits only in the nearby shots list which contains the list of shots that are in the radius of view of each robot.
 
 -- Arena layout and characteristics --
+The arena has a square shape and a fixed dimension. The robots start their match from the four corners of the arena and cannot navigate outside of the arena. Each physical dimension such as robot size or velocity is scaled according to the dimension of the area. The robot size is predefined and equal for each robot and a robot cannot occupy a position that is closer than the robot dimension to the border of the arena. Each robot is free of moving in whatever direction it wants and is asked for the direction of movement and the firing of the shots at every game cycle. Once a shot exits the arena it is deleted as well as once a robot tries to exit the arena only the velocity component that is parallel to the arena border will be applied to the movement making the robot look like it is sliding along the border.
 
 -- Robot Capabilities --
+Each robot has the capability of moving inside the arena and shooting. Both actions require a direction that is chosen by the robot according to its AI. Given a robot and its radius of view it will receive as input the informations about the robots and the shots coming from those robots that are in this radius. The robot can not know or observe objects that are out of its radius of view. At the beginning of the match every robot receives 100 health points and the damage effect caused by being hit by a shot is determined according to the robot shield and the power of the shot that has been fired from another robot.
 
 -- How to write a robot AI --
+Each robot is defined as a python class that is imported when the robots are loaded. Inside the class there are 3 functions that the user chan program:
+
+1) "skills" function: this function contains the 4 robot skills that can be set using a total of 16 skill points with a maximum of 10 points per each skill. The skills are "speed", "power", "view_radius" and "shield".
+
+    def skills(self):
+        '''In this function you can define the 4 skills of your robot which are:
+            1) the speed "self.speed"
+            2) the shooting power "self.power"
+            3) the view radius "self.view_radius"
+            4) the shield of the robot "self.shield"
+            
+            REMEMBER: you have a maximum of 16 robot skill points to give to your robot. 
+            A higher total number of skill points is not accepted. Each skill can have a maximum of 10 points
+            so as example a speed of 11 or 16 is not allowed.
+        '''
+        self.speed = 0
+        self.power = 0
+        self.view_radius = 0
+        self.shield = 0
+        return True
+
+1.1) The "speed" defines how fast can the robot move. The higher the speed is the faster the robot will move. By chosing a speed of 0 the user will be able to create a robot that does not move at all.
+
+1.2) The "power" defines how much damage does a shot that is fired from the robot cause when it hits another robot. On a scale from 0 to 10 a power of 0 will casue a minimum (not null) damage to the robot, while a power of 10 will cause the maximum damage possible.
+
+1.3) The "view_radius" defiens how far the robot can see. Only the objects inside this radius will be transmitted to the robot as input (hence seen by it). Those are the only elements the robot AI can base on for computing its next move.
+
+1.4) The "shield" skill defines how muche the power of the shot that hits the robot is damped. In fact the computation for the damage of a shot is done considering both the shield of the hit robot and the power of the one that fired the shot.
+
+2) "move" function: this function receives as input the position of the robot specified in the "__pos" tuple and the position of the nearby robots and shots given in the two dictionaries "__players_in_radius" and "__shots_in_radius". The output of the function has to be given in the form of angular direction of movement in degrees. The algorithm inside the function has to be implemented by the user in order to decide how the robot should behave basing on the input information.
+
+    def move(self, __pos, __players_in_radius, __shots_in_radius):
+        ''''Here you can chose how you want your robot to move in the arena,
+            basing on the information that you have.
+            
+            INPUT:
+            1) position of the robot stored in the "position" variable and given as a tuple (x,y)
+            2) position of the other robots in the view radius as tuple (x,y) 
+               accessible by "position" property of "robots_in_radius" dictionary objects
+               structured as follows:
+                    robots_in_radius = {
+                        $robot_name_1: {position: (x1,y1)},
+                        $robot_name_2: {position: (x2,y2)},
+                        ...
+                        $robot_name_n: {position: (xn,yn)},
+                    }
+            3) position, direction, power and distance of the shots in the view radius given as:
+                - a tuple for the "position" property (x,y)
+                - an integer for the "direction" property of the shots given in degrees
+                - and integer for the "power" of the shots
+               accessible from the "shots_in_radius" dictionary objects 
+               structured as follows:
+                    shots_in_radius = {
+                                $robot_name_1: [[{position: (x_1_1,y_1_1), direction: dir_1_1, power:pow_1_1}, distance],
+                                                {position: (x_1_2,y_1_2), direction: dir_1_1, power:pow_1_2},
+                                                ...
+                                                {position: (x_1_n,y_1_n), direction: dir_1_n, power:pow_1_n}
+                                ],
+                                $robot_name_2: [{position: (x_2_1,y_2_1), direction: dir_2_1, power:pow_2_1},
+                                                {position: (x_2_2,y_2_2), direction: dir_2_1, power:pow_2_2},
+                                                ...
+                                                {position: (x_2_n,y_2_n), direction: dir_1_n, power:pow_2_n}
+                                ],
+                                ...,
+                                $robot_name_m: [{position: (x_m_1,y_m_1), direction: dir_m_1, power:pow_m_1},
+                                                {position: (x_m_2,y_m_2), direction: dir_m_1, power:pow_m_2},
+                                                ...
+                                                {position: (x_m_n,y_m_n), direction: dir_m_n, power:pow_m_n}
+                                ],
+                                
+                    }
+            
+            OUTPUT: Basing on the information you have and on the speed that you selected in your robot skills
+            you have to consider how you want to move your robot. You can implement your own logic 
+            for chosing how your robot should behave but the output has to be given  in the form of:
+            1) the movement direction expressed in the form of the angular direction in the field 
+               (clockwise from the orizontal right direction, corresponding to the positive x axis) given in degrees. 
+               If no direction is given ("direction" = None) the robot will stand still
+        '''
+        direction = None
+        return direction
