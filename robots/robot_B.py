@@ -5,7 +5,7 @@ class robot():
         self.skills()
 
     def skills(self):
-        '''In this function you can thefine the 4 skills of your robot which are:
+        '''In this function you can define the 4 skills of your robot which are:
             1) the speed "self.speed"
             2) the shooting power "self.power"
             3) the view radius "self.view_radius"
