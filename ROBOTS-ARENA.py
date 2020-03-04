@@ -37,7 +37,7 @@ def main():
 
         #------ON QUIT PRESS--------
         if game.quit == True:
-            break
+            return 1
         
         #------ON PAUSE PRESS--------
         if game.pause == True:
@@ -73,10 +73,10 @@ def main():
     
     if game.robots_alive_number == 1:
         game.show_winner()
-        time.sleep(10)
+        time.sleep(8)
     else:
         game.show_no_winner()
-        time.sleep(10)
+        time.sleep(8)
 
 if __name__ == '__main__':              
     main()
