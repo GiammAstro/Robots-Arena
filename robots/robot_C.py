@@ -1,7 +1,8 @@
+import numpy as np
 class robot():
     
     def __init__(self):
-        self.robot_name = 'ROBOT_B'
+        self.robot_name = 'ROBOT_C'
         self.skills()
 
     def skills(self):
@@ -14,9 +15,9 @@ class robot():
             REMEMBER: you have a maximum of 16 robot skill points to give to your robot. 
             A higher total number of skill points is not accepted.
         '''
-        self.speed = 0
-        self.power = 0
-        self.view_radius = 0
+        self.speed = 4
+        self.power = 5
+        self.view_radius = 7
         self.shield = 0
         return True
     
@@ -35,7 +36,13 @@ class robot():
             the movement direction expressed in the form of the angular direction in the field 
             (clockwise from the vertical up direction) given in degrees. If no direction is given ("direction" = None) the robot will stand still
         '''
-        self.direction = None
+        if (50 - __pos[0]) == 0:
+            if (50 - __pos[1]) <= 0:
+                self.direction = 90
+            else:
+                self.direction = 270
+        else:
+            self.direction = np.degrees(np.arctan2((50 - __pos[1]), (50 - __pos[0])))
         return self.direction
     
     def shoot(self, __pos, __players_in_radius, __shots_in_radius):
@@ -54,5 +61,9 @@ class robot():
                (clockwise from the orizontal right direction, corresponding to the positive x axis) given in degrees. 
                If no direction is given ("shot" = None) the robot will not shoot
         '''
+        for nearby_robot in __players_in_radius:
+            self.shot = np.degrees(np.arctan2((__players_in_radius[nearby_robot]['position'][1] - __pos[1]), (__players_in_radius[nearby_robot]['position'][0] - __pos[0])))
+            return self.shot
+        
         self.shot = None
         return self.shot

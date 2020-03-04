@@ -38,6 +38,7 @@ class game:
         #shoot frequency (shoots per second, minimum is 1)
         self.shooting_freq = 0.8
         self.shooting_time = 0
+        self.shooting_time_new = 0
         #robot speed limit
         self.speed_limit_scaled = 15 * (60/self.fps) / 1000
         self.speed_limit = self.arena_diagonal * self.speed_limit_scaled
@@ -145,7 +146,7 @@ class game:
             self.robots_stat[robot.robot_name]['shield'] = robot.shield
             self.robots_stat[robot.robot_name]['speed'] = robot.speed
             self.robots_stat[robot.robot_name]['power'] = robot.power
-            self.robots_stat[robot.robot_name]['view_radius'] = (2 * self.robots_size) + (robot.view_radius / 10 * self.robots_size * 6)
+            self.robots_stat[robot.robot_name]['view_radius'] = (2 * self.robots_size) + (robot.view_radius / 10 * self.robots_size * 20)
             self.robots_stat[robot.robot_name]['shots'] = []
             self.robots_stat[robot.robot_name]['marker'] = None
             counter += 1
@@ -185,7 +186,7 @@ class game:
                 #------------SHOTS-----------------#
                 #we want to shoot with a specific frequency so we check if it is the correct time to shoot
                 if (time - self.shooting_time) > (1/self.shooting_freq):
-                    self.shooting_time = time
+                    self.shooting_time_new = time
                     #we ask to the robot if it wants to shoot
                     shot_dir_focus = robot_focus.shoot(self.robots_stat[robot_focus.robot_name]['position'], self.nearby_robots[robot_focus.robot_name], self.nearby_shots[robot_focus.robot_name])
                     if shot_dir_focus != None:
@@ -197,6 +198,7 @@ class game:
                             'direction': shot_dir_focus, 
                             'power': self.robots_stat[robot_focus.robot_name]['power'], 
                             'marker': None})
+        self.shooting_time = self.shooting_time_new
         
         #-----------APPLYING MOVEMENTS---------#
         #we apply the movement to both robots and shots
@@ -444,7 +446,7 @@ class game:
                                         nearby_shots[robot_focus][robot] = []
                                     #appending the nearby shot to the existing list
                                     nearby_shots[robot_focus][robot].append([shot_focus, curr_distance])
-            
+
         return nearby_robots, nearby_shots
 
     ####################################################
